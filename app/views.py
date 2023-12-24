@@ -142,7 +142,7 @@ import openai
 import os
 
 # Set your OpenAI API key
-openai.api_key = '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'
+openai.api_key = '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'
 # openai.api_key = os.getenv("openai_key") 
 # for demo
 skills = ["Python", "Machine Learning"]
@@ -154,6 +154,7 @@ required_skills_for_job = ["Python", "Machine Learning", "Data Analysis"]
 @csrf_exempt
 def process_audio_and_openai(request, audio_file_id):
     # request should also contain the profile of user, so that in each request we can prompt the AI to ask questions accordingly 
+    openai.api_key = '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'
 
     # Also the AI should have the context of the previous questions and the usre's responses, that will be an overhead to store as well as send in the request to model (it'll increase the token count)
     if request.method == 'GET':
@@ -185,7 +186,8 @@ def process_audio_and_openai(request, audio_file_id):
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 def transcribe_view(request, audio_file_id):
-    openai.api_key = os.getenv("openai_key")
+    # openai.api_key = os.getenv("openai_key")
+    openai.api_key = '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'
 
     try:
         audio_file_instance = AudioFile.objects.get(id=audio_file_id)
