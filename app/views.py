@@ -126,6 +126,13 @@
 #         new_audio = AudioFile.objects.create(audio_file=audio_file)
 #         return JsonResponse({'message': 'Audio file uploaded successfully'})
 #     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+from django.shortcuts import render
+
+
+def index(request):
+    return render(request, 'app/index.html')
+
 # views.py
 import json
 from django.http import JsonResponse
