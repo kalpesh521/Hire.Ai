@@ -142,7 +142,8 @@ import openai
 import os
 
 # Set your OpenAI API key
-openai.api_key = os.getenv("openai_key") 
+openai.api_key = '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'
+# openai.api_key = os.getenv("openai_key") 
 # for demo
 skills = ["Python", "Machine Learning"]
 level = "Intermediate"
