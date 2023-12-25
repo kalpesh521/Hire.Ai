@@ -1,4 +1,4 @@
-<!-- index.html -->
+{% comment %} <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,4 +23,63 @@
     </footer>
 </body>
 
+</html> {% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio File Processing</title>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Hire.AI Platform</h1>
+    </header>
+    <input type="file" id="audioFileInput">
+    <button onclick="uploadAudio()">Upload Audio</button>
+    <button onclick="processAudio()">Process Audio</button>
+    
+    <script>
+        // Function to handle audio file upload
+        function uploadAudio() {
+            const audioFile = document.getElementById('audioFileInput').files[0];
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+
+            fetch('/upload_audio/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Audio file uploaded successfully');
+                } else {
+                    console.error('Failed to upload audio file');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to trigger audio processing
+        function processAudio() {
+            const audioFileId = 123; // Replace with actual audio file ID
+
+            fetch(`/process_audio_and_openai/${audioFileId}/`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to process audio');
+                }
+            })
+            .then(data => {
+                console.log('Audio processing response:', data);
+                // Handle the response data as needed
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
 </html>
