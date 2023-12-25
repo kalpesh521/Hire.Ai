@@ -1,119 +1,3 @@
-# from django.http import JsonResponse
-# from django.views.decorators.csrf import csrf_exempt
-# from .models import Interview ,AudioFile
-# import openai
-# import os
- 
-
-# def transcribe_view(request, audio_file_id):
-#     openai.api_key = os.getenv("openai_key")
-# 
-#     try:
-#         audio_file_instance = AudioFile.objects.get(id=audio_file_id)
-#         audio_file_path = audio_file_instance.audio_file.path   
-
-#         with open(audio_file_path, "rb") as file:
-#             transcript = openai.Audio.transcribe("whisper-1", file)
-#             return JsonResponse({'transcript': transcript})
-#     except AudioFile.DoesNotExist:
-#         return JsonResponse({'error': 'AudioFile with this ID does not exist'})
-
-# @csrf_exempt
-# def get_openai_response(request):
-#     if request.method == 'POST':
-#         try:
-#             # Get the user's input from the POST request
-#             user_input = request.POST.get('user_input')
-
-#             # Construct the prompt with conversation history
-#             conversation_history = request.POST.get('conversation_history', '')
-#             prompt = f"{conversation_history}\nUser: {user_input}"
-
-#             # Make a call to the OpenAI API
-#             response = openai.Completion.create(
-#                 engine="text-davinci-002",
-#                 prompt=prompt,
-#                 max_tokens=150
-#             )
-
-#             # Extract the assistant's reply from the API response
-#             assistant_reply = response['choices'][0]['text'].strip()
-
-#             # Update conversation history for the next turn
-#             conversation_history += f"\nUser: {user_input}\nAI: {assistant_reply}"
-
-#             # Respond with the assistant's reply
-#             return JsonResponse({'assistant_reply': assistant_reply, 'conversation_history': conversation_history})
-
-#         except Exception as e:
-#             # Handle errors
-#             return JsonResponse({'error': str(e)}, status=500)
-
-#     return JsonResponse({'error': 'Invalid request method'}, status=400)
- 
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# @csrf_exempt
-# def transcribe_audio(request):
-#     if request.method == 'POST':
-#         try:
-#             audio_file = request.FILES['./audio.mp3']
-#             print(audio_file)
-#             prompt = request.POST.get('prompt')
-#             #Backend\Interview\audio_files
-#             # Save audio file to Interview model (if needed)
-#             new_interview = Interview.objects.create(prompt=prompt, audio_file=audio_file)
-#             new_interview.save()
-
-#             # Perform transcription using the Whisper model (example)
-#             # Replace this with your Whisper model logic
-#             # Simulated transcription for example
-#             transcript = openai.Audio.transcribe("whisper-1", audio_file)
-#             print(transcript)
-#             # Update transcript in Interview model
-#             new_interview.transcript = transcript
-#             new_interview.save()
-
-#             return JsonResponse({'transcript': transcript})  # Return transcript as JSON response
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)  # Return error response if any
-#     else:
-#         return JsonResponse({'error': 'Invalid method'}, status=405)  # Return error for unsupported methods
-
-# # views.py
-
- 
-
 
 # from django.http import JsonResponse
 # from django.views.decorators.csrf import csrf_exempt
@@ -128,12 +12,6 @@
 #     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 from django.shortcuts import render
-
-
-def index(request):
-    return render(request, 'app/index.html')
-
-# views.py
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -141,9 +19,12 @@ from .models import Interview ,AudioFile
 import openai
 import os
 
+def index(request):
+    return render(request, 'app/index.html')
+
+
 # Set your OpenAI API key
-openai.api_key = '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'
-# openai.api_key = os.getenv("openai_key") 
+openai.api_key = os.getenv("openai_secret") 
 # for demo
 skills = ["Python", "Machine Learning"]
 level = "Intermediate"
@@ -154,7 +35,8 @@ required_skills_for_job = ["Python", "Machine Learning", "Data Analysis"]
 @csrf_exempt
 def process_audio_and_openai(request, audio_file_id):
     # request should also contain the profile of user, so that in each request we can prompt the AI to ask questions accordingly 
-    openai.api_key = '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'
+   
+    openai.api_key = os.getenv("openai_secret") 
 
     # Also the AI should have the context of the previous questions and the usre's responses, that will be an overhead to store as well as send in the request to model (it'll increase the token count)
     if request.method == 'GET':
@@ -186,9 +68,8 @@ def process_audio_and_openai(request, audio_file_id):
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 def transcribe_view(request, audio_file_id):
-    # openai.api_key = os.getenv("openai_key")
-    openai.api_key = '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'
-
+    openai.api_key = os.getenv("openai_secret")
+    
     try:
         audio_file_instance = AudioFile.objects.get(id=audio_file_id)
         audio_file_path = audio_file_instance.audio_file.path   
