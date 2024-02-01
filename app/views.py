@@ -146,7 +146,8 @@ def convertAudio(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-    
+
+@csrf_exempt
 def receive_and_save_audio(request):
     if request.method == 'POST':
         base64_audio_data = request.POST.get("audioBase64")
