@@ -162,7 +162,6 @@ def receive_and_save_audio(request):
 
             # get id
             audio_id = audio_model.id
-
             # In this example, let's just return a success response
             return JsonResponse({'status': 'success', 'audio_id': audio_id})
 
