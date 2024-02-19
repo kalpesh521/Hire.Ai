@@ -49,8 +49,8 @@ def process_audio_and_openai(request, audio_file_id):
             # Update the question history with the latest question
             update_question_history(openai_response)
             
-            # return JsonResponse({'transcript': transcript, 'openai-response': openai_response, 'prompt': prompt}, safe=False)
-            return JsonResponse({'transcript': transcript, 'openai-response': openai_response}, safe=False)
+            return JsonResponse({'transcript': transcript, 'openai-response': openai_response, 'prompt': prompt}, safe=False)
+            # return JsonResponse({'transcript': transcript, 'openai-response': openai_response}, safe=False)
  
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -121,37 +121,14 @@ def update_question_history(openai_response):
     if len(question_history) > max_history_length:
         question_history.pop(0)
 
- 
-def convertAudio(request):
-    if request.method == 'POST':
-        try:
-
-            request_data = json.loads(request.body)
-            print("request ", request_data)
-            
-            # Extract audio data from JSON
-            audio_base64 = request_data.get('audioBase64')
-            print("audio ", audio_base64)
-            
-            if audio_base64:
-                # Decode the Base64 audio data
-                audio_data = base64.b64decode(audio_base64)  # Assuming 'audio_data' is the key in the POST data
-
-            wav_file = open("temp.wav", "wb")
-            wav_file.write(audio_data)
-
-            return JsonResponse({'status': 'success', 'message': 'Conversion successful'})
-            # return response
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-
+   
 @csrf_exempt
 def receive_and_save_audio(request):
+    print("coming in receive_and_save_audio")
+    print(request.method)
     if request.method == 'POST':
         base64_audio_data = request.POST.get("audioBase64")
-
+         
         try:
             # Decode base64 data
             audio_binary_data = base64.b64decode(base64_audio_data)
@@ -168,6 +145,63 @@ def receive_and_save_audio(request):
         except Exception as e:
             # Handle any exceptions that may occur during decoding or saving
             return JsonResponse({'status': 'error', 'message': str(e)})
-
+    elif request.method == 'OPTIONS':
+        # Handle OPTIONS request
+        response = JsonResponse({'message': 'This is an OPTIONS request'})
+        # Set CORS headers
+        response['Access-Control-Allow-Origin'] = '*'  # Update with your allowed origins
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'  # Update with your allowed methods
+        response['Access-Control-Allow-Headers'] = 'Content-Type'  # Update with your allowed headers
+        return response
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+ 
+@csrf_exempt
+def process_audio(request):
+    openai.api_key = os.getenv("openai_secret") 
+
+    if request.method == 'POST':
+        base64_audio_data = request.POST.get("audioBase64")
+        
+        try:
+            # Decode base64 data
+            audio_binary_data = base64.b64decode(base64_audio_data)
+
+            # Create an AudioFileModel instance and save the audio file
+            audio_model = AudioFile()
+            audio_model.audio_file.save('audio_file4.mp3', io.BytesIO(audio_binary_data), save=True)
+
+            # Get the transcript of the audio
+            transcript_response = transcribe_view(request, audio_model.id)
+            transcript_content = transcript_response.content
+            transcript_dict = json.loads(transcript_content)
+            transcript = transcript_dict.get('transcript')
+           
+            prompt = generate_prompt(transcript, skills, level, time_remaining, role, required_skills_for_job)
+
+            # Include the history of asked questions in the prompt
+            prompt += get_question_history_prompt()
+
+            openai_response = get_openai_response(prompt)
+
+            # Update the question history with the latest question
+            update_question_history(openai_response)
+            
+            return JsonResponse({'status': 'success', 'audio_id': audio_model.id, 'transcript': transcript, 'openai-response': openai_response, 'prompt': prompt}, safe=False) 
+
+        except Exception as e:
+            # Handle any exceptions that may occur during decoding or saving
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    elif request.method == 'OPTIONS':
+        # Handle OPTIONS request
+        response = JsonResponse({'message': 'This is an OPTIONS request'})
+        # Set CORS headers
+        response['Access-Control-Allow-Origin'] = '*'  # Update with your allowed origins
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'  # Update with your allowed methods
+        response['Access-Control-Allow-Headers'] = 'Content-Type'  # Update with your allowed headers
+        return response
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
