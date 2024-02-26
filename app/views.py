@@ -114,9 +114,11 @@ def process_audio(request):
     openai.api_key = os.getenv("openai_secret") 
 
     if request.method == 'POST':
-        # json_data = json.loads(request.body)
-        base64_audio_data = request.POST.get("audioBase64")
-        # base64_audio_data = json_data.get("audioBase64")
+        json_data = json.loads(request.body)
+        base64_audio_data = json_data.get("audioBase64")
+        
+        # base64_audio_data = request.POST.get("audioBase64")
+
         try:
             # Decode base64 data
             audio_binary_data = base64.b64decode(base64_audio_data)
