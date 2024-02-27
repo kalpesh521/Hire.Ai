@@ -82,9 +82,10 @@ def update_question_history(openai_response):
 @csrf_exempt
 def save_user_details(request):
     if request.method == 'POST':
-        role = request.POST.get('role')
-        experience = request.POST.get('experience')
-        skills = request.POST.get('skills')
+        json_data = json.loads(request.body)
+        role = json_data.get("role")
+        experience = json_data.get("experience")
+        skills = json_data.get("skills")
 
         if role and experience and skills:
             user_details = UserDetail.objects.create(
@@ -92,7 +93,7 @@ def save_user_details(request):
                 experience=experience,
                 skills=skills
             )
-            return JsonResponse({'message': 'User details saved successfully!'})
+            return JsonResponse({'message': 'User details saved successfully!'}, status=200)
         else:
             return JsonResponse({'error': 'Incomplete data provided!'}, status=400)
     elif request.method == 'OPTIONS':
