@@ -95,6 +95,14 @@ def save_user_details(request):
             return JsonResponse({'message': 'User details saved successfully!'})
         else:
             return JsonResponse({'error': 'Incomplete data provided!'}, status=400)
+    elif request.method == 'OPTIONS':
+        # Handle OPTIONS request
+        response = JsonResponse({'message': 'This is an OPTIONS request'})
+        # Set CORS headers
+        response['Access-Control-Allow-Origin'] = '*'  # Update with your allowed origins
+        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'  # Update with your allowed methods
+        response['Access-Control-Allow-Headers'] = 'Content-Type'  # Update with your allowed headers
+        return response
     else:
         return JsonResponse({'error': 'Only POST requests are allowed!'}, status=405)
 
