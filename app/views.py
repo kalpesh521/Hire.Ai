@@ -113,8 +113,8 @@ def generate_prompt(user_response, skills, experience , role, skills_required):
     prompt += f"Skills: {', '.join(skills)}\n"
     prompt += f"Experience Level: {experience}\n"
     prompt += f"Role Interviewing For: {role}\n"
-    prompt += f"Skills Required for the Job: {', '.join(skills_required)}\n"
-    prompt += f"Question to be ask on topics : {', '.join(topics)}\n"
+    # prompt += f"Skills Required for the Job: {', '.join(skills_required)}\n"
+    # prompt += f"Question to be ask on topics : {', '.join(topics)}\n"
     return prompt
 
 
