@@ -12,6 +12,8 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
 from langchain_openai import ChatOpenAI
+from langchain.memory import ChatMessageHistory
+
 
 from .constants import (
     ELEVENLABS_API_KEY,
@@ -30,7 +32,7 @@ from .utils import (
     update_question_history,
 )
 
-openai.api_key = "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"
+openai.api_key = OPENAI_API_KEY
 
 
 def index(request):
@@ -286,4 +288,73 @@ def process_user_chat(request):
     print(response.content)
     return JsonResponse({"data": response.content})
 
+
+
+def save_user_details(request):
+    if request.method == "POST":
+        json_data = json.loads(request.body)
+        role = json_data.get("role")
+        experience = json_data.get("experience")
+        skills = json_data.get("skills")
+        topics = json_data.get("topics", [])
+        required_skills = json_data.get("requiredSkills", [])
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are a helpful interviewer Your name is Rachel. ask questions to the user based on his skills."),
+                MessagesPlaceholder(variable_name="history"),
+                ("human", "{question}"),
+            ]
+        )
+        chain = prompt | ChatOpenAI()
+        data = MongoDBChatMessageHistory()
+        chain_with_history = RunnableWithMessageHistory(
+            chain,
+            lambda session_id: MongoDBChatMessageHistory(
+                session_id=session_id,
+                connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
+                database_name="AIInterviewer",
+                collection_name="chat_histories",
+            ),
+            input_messages_key="question",
+            history_messages_key="history",
+        )
+        session_id = request.headers.get("Sessionid")
+        question = json.loads(request.body).get('question')
+        config = {"configurable": {"session_id": session_id}}
+        response = chain_with_history.invoke({"question": question}, config=config)
+        print(response.content)
+        return JsonResponse({"data": response.content})
+
+
+def evaluate_user_answer_and_ask_question(request):
+    if request.method == "POST":
+        json_data = json.loads(request.body)
+        user_answer = json_data.get("answer")
+        
+        chat = ChatOpenAI(model="gpt-3.5-turbo-1106")
+        
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are a helpful interviewer Your name is Rachel. ask questions to the user based on his skills."),
+                MessagesPlaceholder(variable_name="history"),
+                ("human", "{question}"),
+            ]
+        )
+        chain = prompt | ChatOpenAI()
+        data = MongoDBChatMessageHistory()
+        chain_with_history = RunnableWithMessageHistory(
+            chain,
+            lambda session_id: MongoDBChatMessageHistory(
+                session_id=session_id,
+                connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
+                database_name="AIInterviewer",
+                collection_name="chat_histories",
+            ),
+            input_messages_key="question",
+            history_messages_key="history",
+        )
+        session_id = request.headers.get("Sessionid")
+        question = json.loads(request.body).get('question')
+        config = {"configurable": {"session_id": session_id}}
+        response = chain_with_history.invoke({"question": question}, config=config)
 
