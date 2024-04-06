@@ -2,10 +2,8 @@ import os
 
 import openai
 import requests
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from django.http import HttpResponseBadRequest
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
-from langchain_openai import ChatOpenAI
 
 from .constants import (
     DATABASE_URL,
@@ -82,29 +80,44 @@ def audio_to_text(audio_file_path):
     return transcription
 
 
-def get_chat_response(session_id, user_answer):
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", "You are a helpful assistant."),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{answer}"),
-        ]
-    )
-    chain = prompt | ChatOpenAI()
+def get_chat_response(session_id, history=[]):
+    completion = openai.chat.completions.create(model="gpt-3.5-turbo", messages=history)
+    response = completion["data"]["choices"][0]["message"]["content"]
+    return response
 
-    chain_with_history = RunnableWithMessageHistory(
-        chain,
-        lambda session_id: MongoDBChatMessageHistory(
-            session_id=session_id,
-            connection_string=DATABASE_URL,
-            database_name="AIInterviewer",
-            collection_name="chat_histories",
-        ),
-        input_messages_key="answer",
-        history_messages_key="history",
+
+def stream_audio(audio_output):
+    yield audio_output
+
+
+def handle_upload_file(audio_file):
+    if not audio_file:
+        return HttpResponseBadRequest({"details": "File Not Provided"})
+    with open(os.getcwd() + f"/chat_audio/{audio_file.name}", "wb") as buffer:
+        for chunks in audio_file.chunks():
+            buffer.write(chunks)
+
+
+def get_response_audio(file_path, session_id, initialize=False):
+    with open(file_path, "rb") as buffer:
+        message_decoded = audio_to_text(buffer)
+    chat_response = get_chat_response(
+        session_id, message_decoded, initialize=initialize
     )
-    session_id = session_id
-    user_answer = user_answer
-    config = {"configurable": {"session_id": session_id}}
-    response = chain_with_history.invoke({"answer": user_answer}, config=config)
-    return response.content
+    audio_output = text_to_audio(chat_response)
+    return audio_output
+
+
+def remove_upload_file(audio_file):
+    if os.path.exists(audio_file):
+        os.remove(audio_file)
+
+
+def get_or_create_history(session_id):
+    messages_in_history = MongoDBChatMessageHistory(
+        session_id=session_id,
+        connection_string=DATABASE_URL,
+        database_name="AIInterviewer",
+        collection_name="chat_histories",
+    )
+    return messages_in_history
