@@ -2,7 +2,6 @@ import base64
 import io
 import json
 import os
-from itertools import chain
 
 import openai
 from django.http import HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
@@ -12,24 +11,21 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
 from langchain_openai import ChatOpenAI
-from langchain.memory import ChatMessageHistory
 
 
 from .constants import (
-    ELEVENLABS_API_KEY,
-    ELEVENLABS_MODEL_ID,
-    ELEVENLABS_VOICE_ID,
     OPENAI_API_KEY,
+    DATABASE_URL,
 )
 from .models import AudioFile, UserDetail
 from .utils import (
     audio_to_text,
     generate_prompt,
-    get_chat_response,
     get_openai_response,
     get_question_history_prompt,
     text_to_audio,
     update_question_history,
+    get_chat_response,
 )
 
 openai.api_key = OPENAI_API_KEY
@@ -47,36 +43,6 @@ topics = [
     "Networking in the Cloud",
     "IAM (Identity and Access Management),software development",
 ]
-
-
-@csrf_exempt
-def save_user_details(request):
-    from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
-    from langchain_openai import ChatOpenAI
-
-    if request.method == "POST":
-        json_data = json.loads(request.body)
-        role = json_data.get("role")
-        experience = json_data.get("experience")
-        skills = json_data.get("skills")
-        topics = json_data.get("topics", [])
-        required_skills = json_data.get("requiredSkills", [])
-
-        chat_message_history = MongoDBChatMessageHistory(
-            session_id="test_session",
-            connection_string="mongodb://mongo_user:password123@mongo:27017",
-            database_name="my_db",
-            collection_name="chat_histories",
-        )
-        promt = generate_prompt(
-            skills=skills,
-            experience=experience,
-            role=role,
-            skills_required=required_skills,
-        )
-        return JsonResponse({"message": "User details saved successfully!"}, status=201)
-    else:
-        return JsonResponse({"error": "Method not allwed"}, status=405)
 
 
 @csrf_exempt
@@ -210,6 +176,7 @@ def process_audio_and_openai(request, audio_file_id):
 def process_user_audio(request):
     if request.method == "POST":
         audio_file = request.FILES.get("audio_file")
+        session_id = request.headers.get("sessionId")
         if not audio_file:
             return HttpResponseBadRequest({"details": "File Not Provided"})
         with open(os.getcwd() + f"/chat_audio/{audio_file.name}", "wb") as buffer:
@@ -219,7 +186,7 @@ def process_user_audio(request):
         file_path = os.path.join(os.getcwd(), "chat_audio", f"{audio_file.name}")
         with open(file_path, "rb") as buffer:
             message_decoded = audio_to_text(buffer)
-        chat_response = get_chat_response(message_decoded)
+        chat_response = get_chat_response(session_id, message_decoded)
         audio_output = text_to_audio(chat_response)
 
         if os.path.exists(file_path):
@@ -237,124 +204,45 @@ def process_user_audio(request):
     else:
         return JsonResponse({"details": "Method not allowed"}, status=405)
 
-sessions = {}
 
-def process_user_question(user_question, session_id=None):
-    from langchain_openai import ChatOpenAI
-    if session_id not in sessions:
-        pass 
-    chain_with_history = RunnableWithMessageHistory(
-        chain,
-        lambda session_id: MongoDBChatMessageHistory(
-            session_id=session_id,
-            connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
-            database_name="AIInterviewer",
-            collection_name="chat_histories",
-        ),
-        input_messages_key="question",
-        history_messages_key="history",
-    )
-    
-    config = {"configurable": {"session_id": session_id}}
-    return chain_with_history.invoke({"question": user_question}, config=config)
-    
-    
 @csrf_exempt
-def process_user_chat(request):
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", "You are a helpful assistant."),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{question}"),
-        ]
-    )
-    chain = prompt | ChatOpenAI()
-
-    chain_with_history = RunnableWithMessageHistory(
-        chain,
-        lambda session_id: MongoDBChatMessageHistory(
-            session_id=session_id,
-            connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
-            database_name="AIInterviewer",
-            collection_name="chat_histories",
-        ),
-        input_messages_key="question",
-        history_messages_key="history",
-    )
-    session_id = request.headers.get("Sessionid")
-    question = json.loads(request.body).get('question')
-    config = {"configurable": {"session_id": session_id}}
-    response = chain_with_history.invoke({"question": question}, config=config)
-    print(response.content)
-    return JsonResponse({"data": response.content})
-
-
-
 def save_user_details(request):
     if request.method == "POST":
-        json_data = json.loads(request.body)
-        role = json_data.get("role")
-        experience = json_data.get("experience")
-        skills = json_data.get("skills")
-        topics = json_data.get("topics", [])
-        required_skills = json_data.get("requiredSkills", [])
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", "You are a helpful interviewer Your name is Rachel. ask questions to the user based on his skills."),
+                (
+                    "system",
+                    """You are a helpful interviewer Your name is Sara. ask questions to the user based on his skills.
+                        start with personal details and then ask questions based on skills and experience according to user answers.
+                        your role is interviewer so ask question to the use.
+                 """,
+                ),
                 MessagesPlaceholder(variable_name="history"),
-                ("human", "{question}"),
+                ("human", "{answer}"),
             ]
         )
         chain = prompt | ChatOpenAI()
-        data = MongoDBChatMessageHistory()
         chain_with_history = RunnableWithMessageHistory(
             chain,
             lambda session_id: MongoDBChatMessageHistory(
                 session_id=session_id,
-                connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
+                connection_string=DATABASE_URL,
                 database_name="AIInterviewer",
                 collection_name="chat_histories",
             ),
-            input_messages_key="question",
+            input_messages_key="answer",
             history_messages_key="history",
         )
         session_id = request.headers.get("Sessionid")
-        question = json.loads(request.body).get('question')
+        question = "Hi Sara"
         config = {"configurable": {"session_id": session_id}}
-        response = chain_with_history.invoke({"question": question}, config=config)
-        print(response.content)
-        return JsonResponse({"data": response.content})
+        response = chain_with_history.invoke({"answer": question}, config=config)
+        audio_output = text_to_audio(response.content)
 
+        def stream_audio():
+            yield audio_output
 
-def evaluate_user_answer_and_ask_question(request):
-    if request.method == "POST":
-        json_data = json.loads(request.body)
-        user_answer = json_data.get("answer")
-        
-        chat = ChatOpenAI(model="gpt-3.5-turbo-1106")
-        
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", "You are a helpful interviewer Your name is Rachel. ask questions to the user based on his skills."),
-                MessagesPlaceholder(variable_name="history"),
-                ("human", "{question}"),
-            ]
+        return StreamingHttpResponse(
+            stream_audio(),
+            content_type="audio/mpeg",
         )
-        chain = prompt | ChatOpenAI()
-        data = MongoDBChatMessageHistory()
-        chain_with_history = RunnableWithMessageHistory(
-            chain,
-            lambda session_id: MongoDBChatMessageHistory(
-                session_id=session_id,
-                connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
-                database_name="AIInterviewer",
-                collection_name="chat_histories",
-            ),
-            input_messages_key="question",
-            history_messages_key="history",
-        )
-        session_id = request.headers.get("Sessionid")
-        question = json.loads(request.body).get('question')
-        config = {"configurable": {"session_id": session_id}}
-        response = chain_with_history.invoke({"question": question}, config=config)
-
