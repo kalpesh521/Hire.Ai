@@ -23,7 +23,7 @@ def text_to_audio(text):
     return response.content
 
 
-def generate_prompt(user_response, skills, experience, role, skills_required):
+def generate_prompt(skills, experience, role, skills_required, user_response = ""):
     prompt = "Act as a interviewer and ask some technical question to the candidate based on this information.Just one question to the candidate not reply by the candidate , and question should be only one. "
     prompt += f"User Response: {user_response}\n"
     prompt += f"Skills: {', '.join(skills)}\n"

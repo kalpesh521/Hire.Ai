@@ -3,7 +3,7 @@ from django.urls import path
 from . import views 
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import process_audio ,save_user_details,process_audio_and_openai, process_user_audio
+from .views import process_audio ,save_user_details,process_audio_and_openai, process_user_audio, process_user_chat
   
 urlpatterns = [
     path('process/', process_audio, name='process_audio'),
@@ -14,6 +14,7 @@ urlpatterns = [
     # path('get_openai_response/', get_openai_response, name='get_openai_response'),
     path('', views.index, name='index'),
     
-    path('post_audio/', process_user_audio, name='post_audio')
+    path('post_audio/', process_user_audio, name='post_audio'),
+    path('process_user_chat/', process_user_chat, name='post_audio')
 ] + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
   

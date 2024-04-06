@@ -2,13 +2,23 @@ import base64
 import io
 import json
 import os
+from itertools import chain
 
 import openai
 from django.http import HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
-from .constants import ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, OPENAI_API_KEY
 from django.views.decorators.csrf import csrf_exempt
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
+from langchain_openai import ChatOpenAI
 
+from .constants import (
+    ELEVENLABS_API_KEY,
+    ELEVENLABS_MODEL_ID,
+    ELEVENLABS_VOICE_ID,
+    OPENAI_API_KEY,
+)
 from .models import AudioFile, UserDetail
 from .utils import (
     audio_to_text,
@@ -20,7 +30,7 @@ from .utils import (
     update_question_history,
 )
 
-openai.api_key = OPENAI_API_KEY
+openai.api_key = "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"
 
 
 def index(request):
@@ -39,6 +49,9 @@ topics = [
 
 @csrf_exempt
 def save_user_details(request):
+    from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
+    from langchain_openai import ChatOpenAI
+
     if request.method == "POST":
         json_data = json.loads(request.body)
         role = json_data.get("role")
@@ -47,28 +60,19 @@ def save_user_details(request):
         topics = json_data.get("topics", [])
         required_skills = json_data.get("requiredSkills", [])
 
-        UserDetail.objects.create(
-            role=role,
-            experience=experience,
+        chat_message_history = MongoDBChatMessageHistory(
+            session_id="test_session",
+            connection_string="mongodb://mongo_user:password123@mongo:27017",
+            database_name="my_db",
+            collection_name="chat_histories",
+        )
+        promt = generate_prompt(
             skills=skills,
-            topics=" ".join(topics),
-            required_skills=" ".join(required_skills),
+            experience=experience,
+            role=role,
+            skills_required=required_skills,
         )
         return JsonResponse({"message": "User details saved successfully!"}, status=201)
-    elif request.method == "OPTIONS":
-        # Handle OPTIONS request
-        response = JsonResponse({"message": "This is an OPTIONS request"})
-        # Set CORS headers
-        response["Access-Control-Allow-Origin"] = (
-            "*"  # Update with your allowed origins
-        )
-        response["Access-Control-Allow-Methods"] = (
-            "GET, POST, PUT, DELETE"  # Update with your allowed methods
-        )
-        response["Access-Control-Allow-Headers"] = (
-            "Content-Type"  # Update with your allowed headers
-        )
-        return response
     else:
         return JsonResponse({"error": "Method not allwed"}, status=405)
 
@@ -219,14 +223,67 @@ def process_user_audio(request):
         if os.path.exists(file_path):
             # remove the stored files
             os.remove(file_path)
-        
-        # function to return genrator for audio   
+
+        # function to return genrator for audio
         def stream_audio():
             yield audio_output
-        
+
         return StreamingHttpResponse(
             stream_audio(),
             content_type="audio/mpeg",
         )
     else:
         return JsonResponse({"details": "Method not allowed"}, status=405)
+
+sessions = {}
+
+def process_user_question(user_question, session_id=None):
+    from langchain_openai import ChatOpenAI
+    if session_id not in sessions:
+        pass 
+    chain_with_history = RunnableWithMessageHistory(
+        chain,
+        lambda session_id: MongoDBChatMessageHistory(
+            session_id=session_id,
+            connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
+            database_name="AIInterviewer",
+            collection_name="chat_histories",
+        ),
+        input_messages_key="question",
+        history_messages_key="history",
+    )
+    
+    config = {"configurable": {"session_id": session_id}}
+    return chain_with_history.invoke({"question": user_question}, config=config)
+    
+    
+@csrf_exempt
+def process_user_chat(request):
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a helpful assistant."),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{question}"),
+        ]
+    )
+    chain = prompt | ChatOpenAI()
+
+    chain_with_history = RunnableWithMessageHistory(
+        chain,
+        lambda session_id: MongoDBChatMessageHistory(
+            session_id=session_id,
+            connection_string="mongodb+srv://ghadgerasika16:Rasika123@cluster0.0fnjyu2.mongodb.net/AIInterviewer?retryWrites=true&w=majority",
+            database_name="AIInterviewer",
+            collection_name="chat_histories",
+        ),
+        input_messages_key="question",
+        history_messages_key="history",
+    )
+    session_id = request.headers.get("Sessionid")
+    question = json.loads(request.body).get('question')
+    config = {"configurable": {"session_id": session_id}}
+    response = chain_with_history.invoke({"question": question}, config=config)
+    print(response.content)
+    return JsonResponse({"data": response.content})
+
+
