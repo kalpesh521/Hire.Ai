@@ -2,22 +2,14 @@ import base64
 import io
 import json
 import os
-from ast import mod
 
 import openai
-from django.http import HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
-from langchain_openai import ChatOpenAI
 from openai import OpenAI
 
-from .constants import (
-    DATABASE_URL,
-    OPENAI_API_KEY,
-)
+from .constants import OPENAI_API_KEY
 from .models import AudioFile, UserDetail
 from .utils import (
     audio_to_text,
@@ -28,6 +20,7 @@ from .utils import (
     get_question_history_prompt,
     get_response_audio,
     handle_upload_file,
+    initialize_chat,
     remove_upload_file,
     stream_audio,
     text_to_audio,
@@ -36,8 +29,9 @@ from .utils import (
 
 openai.api_key = OPENAI_API_KEY
 
+
 chat_history = []
-client = OpenAI()
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def index(request):
@@ -182,129 +176,18 @@ def process_audio_and_openai(request, audio_file_id):
 
 
 @csrf_exempt
-def process_user_audio(request):
+def initialize_session(request):
     if request.method == "POST":
-        audio_file = request.FILES.get("audio_file")
-        session_id = request.headers.get("sessionId")
-        handle_upload_file(audio_file=audio_file)
-        file_path = os.path.join(os.getcwd(), "chat_audio", f"{audio_file.name}")
-        audio_output = get_response_audio(file_path=file_path, session_id=session_id)
-        remove_upload_file(audio_file)
-        return StreamingHttpResponse(
-            stream_audio(audio_output=audio_output),
-            content_type="audio/mpeg",
-        )
-    else:
-        return JsonResponse({"details": "Method not allowed"}, status=405)
-
-
-@csrf_exempt
-def start(request):
-    if request.method == "POST":
-        audio_file = request.FILES.get("audio_file")
-        session_id = request.headers.get("sessionId")
-        subject = json.loads(request.body).get("subject")
-        handle_upload_file(audio_file=audio_file)
-        messages_in_history = get_or_create_history(session_id=session_id)
-        messages_in_history.add_user_message(
-            f"Act as an interviewer and ask me exactly one question from the below topics. {subject}"
-        )
-        response = get_chat_response(
-            session_id=session_id, history=messages_in_history.messages
-        )
-        messages_in_history.add_ai_message(response)
-        audio_output = text_to_audio(response)
-
-        return StreamingHttpResponse(
-            stream_audio(audio_output=audio_output),
-            content_type="audio/mpeg",
-        )
-    else:
-        return JsonResponse({"details": "Method not allowed"}, status=405)
-
-
-@csrf_exempt
-def end(request):
-    if request.method == "POST":
-        audio_file = request.FILES.get("audio_file")
-        session_id = request.headers.get("sessionId")
-        end_feedback_prompt = {
-            "role": "user",
-            "content": """
-                    Based on the above questions and answers give a feedback using the following rubrics
-                    Technical Knowledge: The interviewer will gauge your understanding of core technical concepts related to the field you're being interviewed for. This could include knowledge of programming languages, algorithms, data structures, specific frameworks, or relevant technologies.
-                    Problem-Solving Skills: You might be presented with hypothetical scenarios or theoretical problems to solve. The interviewer will assess your ability to approach problems logically, break them down into smaller parts, and devise solutions using your technical knowledge.
-                    Critical Thinking: Your capacity to analyze information critically will be examined. This involves evaluating various options, considering pros and cons, and selecting the most appropriate solution or approach.
-                    Communication Skills: It's not just about knowing the answers; you should be able to articulate your thoughts effectively. Clear and concise communication is vital in a technical role, as you may need to collaborate with teammates or explain complex concepts to non-technical stakeholders.
-                    Understanding of Fundamentals: A solid grasp of the foundational principles is crucial. The interviewer may ask questions about basic concepts in the field to assess whether you have a strong understanding of the fundamentals.
-                    Rate each key out of 10 and  and give the response in json format and calculate the average `,
-                """,
-        }
-        handle_upload_file(audio_file=audio_file)
-        messages_in_history = get_or_create_history(session_id=session_id).messages
-
-        messages_in_history.append(end_feedback_prompt)
-        response = get_chat_response(
-            session_id=session_id, history=messages_in_history.messages
-        )
-        messages_in_history.add_ai_message(response)
-        audio_output = text_to_audio(response)
-
-        return StreamingHttpResponse(
-            stream_audio(audio_output=audio_output),
-            content_type="audio/mpeg",
-        )
-    else:
-        return JsonResponse({"details": "Method not allowed"}, status=405)
-
-
-@csrf_exempt
-def next(request):
-    if request.method == "POST":
-        audio_file = request.FILES.get("audio_file")
-        session_id = request.headers.get("sessionId")
-        handle_upload_file(audio_file=audio_file)
-        messages_in_history = get_or_create_history(session_id=session_id)
-        messages_in_history.add_user_message("Ask the next question")
         try:
-            response = get_chat_response(
-                session_id=session_id, history=messages_in_history.messages
-            )
-            messages_in_history.add_ai_message(response)
-            audio_output = text_to_audio(response)
+            json_data = json.loads(request.body)
+            role = json_data.get("role")
+            experience = json_data.get("experience")
+            skills = json_data.get("skills")
+            topic = json_data.get("topic")
 
-            return StreamingHttpResponse(
-                stream_audio(audio_output=audio_output),
-                content_type="audio/mpeg",
+            response = initialize_chat(
+                role=role, experience=experience, skills=skills, topic=topic
             )
-        except Exception:
-            response = "Sorry I didn't understand? Can you please repeat?"
-            return StreamingHttpResponse(
-                stream_audio(text_to_audio(response)), content_type="audio/mpeg"
-            )
-    else:
-        return JsonResponse({"details": "Method not allowed"}, status=405)
-
-
-@csrf_exempt
-def submit(request):
-    if request.method == "POST":
-        audio_file = request.FILES.get("audio_file")
-        session_id = request.headers.get("sessionId")
-        data = json.loads(request.body)
-        answer = data.get("answer", "")
-        feedback = request.GET.get("feedback", "")
-        feedback = "do" if feedback == "1" else "Don't"
-        handle_upload_file(audio_file=audio_file)
-        messages_in_history = get_or_create_history(session_id=session_id)
-        messages_in_history.add_user_message(
-            f"{answer}. this is my response to the above question keep a note of it  and {feedback} provide a feed back and ask the next question in the interview."
-        )
-        try:
-            response = get_chat_response(
-                session_id=session_id, history=messages_in_history.messages
-            )
-            messages_in_history.add_ai_message(response)
             audio_output = text_to_audio(response)
 
             return StreamingHttpResponse(
@@ -313,9 +196,42 @@ def submit(request):
             )
         except Exception as e:
             print(e)
-            response = "Sorry I didn't understand? Can you please repeat?"
+            default_message = "I didn't get that. Can you please repeat?"
+            audio_output = text_to_audio(default_message)
             return StreamingHttpResponse(
-                stream_audio(text_to_audio(response)), content_type="audio/mpeg"
+                stream_audio(audio_output=audio_output),
+                content_type="audio/mpeg",
             )
     else:
         return JsonResponse({"details": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def process_user_audio(request):
+    if request.method == "POST":
+        audio_file = request.FILES.get("audio_file")
+        if not audio_file:
+            default_message = "I didn't get that. Can you please repeat?"
+            audio_output = text_to_audio(default_message)
+            return StreamingHttpResponse(
+                stream_audio(audio_output=audio_output),
+                content_type="audio/mpeg",
+            )
+        session_id = request.headers.get("sessionId")
+        handle_upload_file(audio_file=audio_file)
+        file_path = os.path.join(os.getcwd(), "chat_audio", f"{audio_file.name}")
+        audio_output = get_response_audio(file_path=file_path, session_id=session_id)
+        remove_upload_file(file_path)
+        return StreamingHttpResponse(
+            stream_audio(audio_output=audio_output),
+            content_type="audio/mpeg",
+        )
+    else:
+        return JsonResponse({"details": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def clear_history(request):
+    with open("database.json", "w") as buffer:
+        buffer.write("")
+    return JsonResponse({"details": "Interview ended successfully"}, status=200)
