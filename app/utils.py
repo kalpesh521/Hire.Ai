@@ -1,3 +1,4 @@
+import json
 import os
 
 import openai
@@ -35,14 +36,12 @@ def text_to_audio(text):
     return response.content
 
 
-def generate_prompt(skills, experience, role, skills_required, user_response=""):
+def generate_prompt(skills=[], experience=0, role="Python Developer", user_response=""):
     prompt = "Act as a interviewer and ask some technical question to the candidate based on this information.Just one question to the candidate not reply by the candidate , and question should be only one. "
     prompt += f"User Response: {user_response}\n"
     prompt += f"Skills: {', '.join(skills)}\n"
     prompt += f"Experience Level: {experience}\n"
     prompt += f"Role Interviewing For: {role}\n"
-    # prompt += f"Skills Required for the Job: {', '.join(skills_required)}\n"
-    # prompt += f"Question to be ask on topics : {', '.join(topics)}\n"
     return prompt
 
 
@@ -62,12 +61,11 @@ def update_question_history(openai_response):
 
 def get_openai_response(prompt):
     try:
-        response = openai.ChatCompletion.create(
+        completion = openai.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=150,
+            messages=[{"role": "system", "content": prompt}],
         )
-        assistant_reply = response["choices"][0]["message"]["content"].strip()
+        assistant_reply = completion.choices[0].message.content
         return assistant_reply
     except Exception as e:
         raise Exception(str(e))
@@ -80,9 +78,45 @@ def audio_to_text(audio_file_path):
     return transcription
 
 
-def get_chat_response(session_id, history=[]):
-    completion = openai.chat.completions.create(model="gpt-3.5-turbo", messages=history)
-    response = completion["data"]["choices"][0]["message"]["content"]
+def load_messages():
+    messages = []
+    file = "database.json"
+
+    empty = os.stat(file).st_size == 0
+
+    if not empty:
+        with open(file) as db_file:
+            data = json.load(db_file)
+            for item in data:
+                messages.append(item)
+    else:
+        messages.append(
+            {
+                "role": "system",
+                "content": "You are interviewing the user for a front-end React developer position. Ask short questions that are relevant to a junior level developer. Your name is Sara. The user is Travis. Keep responses under 30 words.",
+            }
+        )
+    return messages
+
+
+def save_messages(user_message, gpt_response):
+    file = "database.json"
+    messages = load_messages()
+    messages.append({"role": "user", "content": user_message})
+    messages.append({"role": "assistant", "content": gpt_response})
+    with open(file, "w") as f:
+        json.dump(messages, f)
+
+
+def get_chat_response(session_id, user_message):
+    messages = load_messages()
+    messages.append({"role": "user", "content": user_message})
+    # Send to ChatGpt/OpenAi
+    completion = openai.chat.completions.create(
+        model="gpt-3.5-turbo", messages=messages
+    )
+    response = completion.choices[0].message.content
+    save_messages(user_message, response)
     return response
 
 
@@ -93,17 +127,19 @@ def stream_audio(audio_output):
 def handle_upload_file(audio_file):
     if not audio_file:
         return HttpResponseBadRequest({"details": "File Not Provided"})
+    # Save the file to the disk
     with open(os.getcwd() + f"/chat_audio/{audio_file.name}", "wb") as buffer:
         for chunks in audio_file.chunks():
             buffer.write(chunks)
 
 
-def get_response_audio(file_path, session_id, initialize=False):
+def get_response_audio(file_path, session_id):
     with open(file_path, "rb") as buffer:
         message_decoded = audio_to_text(buffer)
     chat_response = get_chat_response(
-        session_id, message_decoded, initialize=initialize
+        session_id=session_id, user_message=message_decoded
     )
+    save_messages(user_message=message_decoded, gpt_response=chat_response)
     audio_output = text_to_audio(chat_response)
     return audio_output
 
@@ -121,3 +157,10 @@ def get_or_create_history(session_id):
         collection_name="chat_histories",
     )
     return messages_in_history
+
+
+def initialize_chat(skills, experience, role, topic):
+    prompt = generate_prompt(skills, experience, role, topic)
+    openai_response = get_openai_response(prompt)
+    save_messages(user_message=prompt, gpt_response=openai_response)
+    return openai_response
