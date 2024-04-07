@@ -2,8 +2,9 @@ import base64
 import io
 import json
 import os
-
+from .database import collection
 import openai
+from bson import ObjectId
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -21,10 +22,12 @@ from .utils import (
     get_response_audio,
     handle_upload_file,
     initialize_chat,
+    load_messages,
     remove_upload_file,
     stream_audio,
     text_to_audio,
     update_question_history,
+    get_user_evaluation_score,
 )
 
 openai.api_key = OPENAI_API_KEY
@@ -232,6 +235,19 @@ def process_user_audio(request):
 
 @csrf_exempt
 def clear_history(request):
+    interview_id = request.GET.get("interviewId")
+    messages = load_messages()
+    evaluation = get_user_evaluation_score(messages)
+    update = {"$set": {"evaluation": evaluation}}
+    collection.update_one({"_id": ObjectId(interview_id)}, update=update)
     with open("database.json", "w") as buffer:
         buffer.write("")
     return JsonResponse({"details": "Interview ended successfully"}, status=200)
+
+
+@csrf_exempt
+def get_evaluation(request):
+    interview_id = request.GET.get("interviewId")
+    data = collection.find_one({"_id": ObjectId(interview_id)})
+    evaluation = data.get("evaluation", "Error in fetching response")
+    return JsonResponse({"score": evaluation})

@@ -1,0 +1,30 @@
+[
+    {
+        "role": "system",
+        "content": "You are interviewing the user for a front-end React developer position. Ask short questions that are relevant to a junior level developer. Your name is Sara. The user is Travis. Keep responses under 30 words."
+    },
+    {
+        "role": "user",
+        "content": "Act as a interviewer and ask some technical question to the candidate based on this information.Just one question to the candidate not reply by the candidate , and question should be only one. User Response: Django\nSkills: Python, FastAPI\nExperience Level: 2\nRole Interviewing For: Django developer\n"
+    },
+    {
+        "role": "assistant",
+        "content": "Can you explain the differences between Django and FastAPI and when you would choose to use one over the other in a project?"
+    },
+    {
+        "role": "user",
+        "content": "fastapi is new. django is old. fastapi is faster compare to django."
+    },
+    {
+        "role": "assistant",
+        "content": "Great, thank you for the insights! Let's discuss how your experience with Django and FastAPI can contribute to our front-end React projects."
+    },
+    {
+        "role": "user",
+        "content": "fastapi is new. django is old. fastapi is faster compare to django."
+    },
+    {
+        "role": "assistant",
+        "content": "Great, thank you for the insights! Let's discuss how your experience with Django and FastAPI can contribute to our front-end React projects."
+    }
+]

@@ -4,6 +4,7 @@ from django.urls import path
 
 from . import views
 from .views import (
+    get_evaluation,
     initialize_session,
     process_audio,
     process_audio_and_openai,
@@ -23,5 +24,6 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("initialize_session/", initialize_session, name="initialize_session"),
     path("post_audio/", process_user_audio, name="post_audio"),
-    path("end/", clear_history, name="end")
+    path("end/", clear_history, name="end"),
+    path("get_evaluation/", get_evaluation, name="get_evaluation")
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -164,3 +164,36 @@ def initialize_chat(skills, experience, role, topic):
     openai_response = get_openai_response(prompt)
     save_messages(user_message=prompt, gpt_response=openai_response)
     return openai_response
+
+
+def get_user_evaluation_score(message_history):
+    prompt = f"""**Evaluate the user's response to the question:**
+
+    {message_history}
+
+    **Provide detailed feedback on the following aspects:**
+
+    * Technical Skills: How well did the user demonstrate technical knowledge and accuracy?
+    * Communication Skills: How clear, concise, and well-organized was the user's response?
+    * Domain Knowledge: Did the user show understanding of the relevant concepts and terminology?
+
+    **Assign scores out of 10 for each category and provide a rationale for the score.**
+
+    **Overall Evaluation:**
+
+    * Based on the above criteria, provide a final evaluation score out of 10 for the user's response.
+    * Briefly summarize the strengths and weaknesses of the response.
+
+    **Additionally, identify any specific areas for improvement and suggest resources or guidance that could be helpful for the user.**
+    """
+
+    try:
+        completion = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": prompt}],
+        )
+        response = completion.choices[0].message.content
+        print(response)
+        return response
+    except Exception as e:
+        raise Exception(str(e))
