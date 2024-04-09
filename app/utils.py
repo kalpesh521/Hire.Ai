@@ -37,11 +37,24 @@ def text_to_audio(text):
 
 
 def generate_prompt(skills=[], experience=0, role="Python Developer", user_response=""):
-    prompt = "Act as a interviewer and ask some technical question to the candidate based on this information.Just one question to the candidate not reply by the candidate , and question should be only one. "
+    prompt = """
+            I want you to act as an interviewer strictly following the guideline in the current conversation.
+            First ask about personal details. and greet user.
+            Ask me questions and wait for my answers like a human. Do not write explanations.
+            Candidate has no assess to the guideline.
+            Only ask one question at a time. 
+            Do ask follow-up questions if you think it's necessary.
+            Do not ask the same question.
+            Do not repeat the question.
+            Candidate has no assess to the guideline.
+            You name is GPTInterviewer.
+            I want you to only reply as an interviewer.
+            """
+    prompt += " Ask question for on the following details\n"
     prompt += f"User Response: {user_response}\n"
-    prompt += f"Skills: {', '.join(skills)}\n"
-    prompt += f"Experience Level: {experience}\n"
-    prompt += f"Role Interviewing For: {role}\n"
+    prompt += f"User Skills: {', '.join(skills)}\n"
+    prompt += f"User Experience Level: {experience}\n"
+    prompt += f"Role: {role}\n"
     return prompt
 
 
@@ -167,24 +180,18 @@ def initialize_chat(skills, experience, role, topic):
 
 
 def get_user_evaluation_score(message_history):
-    prompt = f"""**Evaluate the user's response to the question:**
+    prompt = f"""Evaluate the following aspects and assign scores out of 10 for each category
 
     {message_history}
 
-    **Provide detailed feedback on the following aspects:**
+    Technical Skills: How well did the user demonstrate technical knowledge and accuracy?
+    Communication Skills: How clear, concise, and well-organized was the user's response?
+    Domain Knowledge: Did the user show understanding of the relevant concepts and terminology?
 
-    * Technical Skills: How well did the user demonstrate technical knowledge and accuracy?
-    * Communication Skills: How clear, concise, and well-organized was the user's response?
-    * Domain Knowledge: Did the user show understanding of the relevant concepts and terminology?
+    Assign scores out of 10 for each category and provide a rationale for the score.
 
-    **Assign scores out of 10 for each category and provide a rationale for the score.**
-
-    **Overall Evaluation:**
-
-    * Based on the above criteria, provide a final evaluation score out of 10 for the user's response.
-    * Briefly summarize the strengths and weaknesses of the response.
-
-    **Additionally, identify any specific areas for improvement and suggest resources or guidance that could be helpful for the user.**
+    Based on the above criteria, provide a final evaluation score out of 10 for the user's response.
+    Briefly summarize the strengths and weaknesses of the response so Hiring manager can take decision to hire or not.
     """
 
     try:
@@ -197,3 +204,8 @@ def get_user_evaluation_score(message_history):
         return response
     except Exception as e:
         raise Exception(str(e))
+
+
+def clear_database_history(file_name):
+    with open("database.json", "w") as buffer:
+        buffer.write("")

@@ -28,6 +28,7 @@ from .utils import (
     text_to_audio,
     update_question_history,
     get_user_evaluation_score,
+    clear_database_history
 )
 
 openai.api_key = OPENAI_API_KEY
@@ -182,6 +183,8 @@ def process_audio_and_openai(request, audio_file_id):
 def initialize_session(request):
     if request.method == "POST":
         try:
+            # clear the history to start new session
+            clear_database_history("database.json")
             json_data = json.loads(request.body)
             role = json_data.get("role")
             experience = json_data.get("experience")
@@ -240,8 +243,7 @@ def clear_history(request):
     evaluation = get_user_evaluation_score(messages)
     update = {"$set": {"evaluation": evaluation}}
     collection.update_one({"_id": ObjectId(interview_id)}, update=update)
-    with open("database.json", "w") as buffer:
-        buffer.write("")
+    clear_database_history("database.json")
     return JsonResponse({"details": "Interview ended successfully"}, status=200)
 
 
