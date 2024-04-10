@@ -146,15 +146,15 @@ def handle_upload_file(audio_file):
             buffer.write(chunks)
 
 
-def get_response_audio(file_path, session_id):
+def get_response_data(file_path, session_id):
     with open(file_path, "rb") as buffer:
         message_decoded = audio_to_text(buffer)
     chat_response = get_chat_response(
         session_id=session_id, user_message=message_decoded
     )
     save_messages(user_message=message_decoded, gpt_response=chat_response)
-    audio_output = text_to_audio(chat_response)
-    return audio_output
+    # audio_output = text_to_audio(chat_response)
+    return chat_response
 
 
 def remove_upload_file(audio_file):

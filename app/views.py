@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import os
-from .database import collection
+
 import openai
 from bson import ObjectId
 from django.http import JsonResponse, StreamingHttpResponse
@@ -11,15 +11,18 @@ from django.views.decorators.csrf import csrf_exempt
 from openai import OpenAI
 
 from .constants import OPENAI_API_KEY
+from .database import collection
 from .models import AudioFile, UserDetail
 from .utils import (
     audio_to_text,
+    clear_database_history,
     generate_prompt,
     get_chat_response,
     get_openai_response,
     get_or_create_history,
     get_question_history_prompt,
-    get_response_audio,
+    get_response_data,
+    get_user_evaluation_score,
     handle_upload_file,
     initialize_chat,
     load_messages,
@@ -27,8 +30,7 @@ from .utils import (
     stream_audio,
     text_to_audio,
     update_question_history,
-    get_user_evaluation_score,
-    clear_database_history
+    update_question_history,
 )
 
 openai.api_key = OPENAI_API_KEY
@@ -196,10 +198,7 @@ def initialize_session(request):
             )
             audio_output = text_to_audio(response)
 
-            return StreamingHttpResponse(
-                stream_audio(audio_output=audio_output),
-                content_type="audio/mpeg",
-            )
+            return JsonResponse({"content": response}, status=200)
         except Exception as e:
             print(e)
             default_message = "I didn't get that. Can you please repeat?"
@@ -226,12 +225,9 @@ def process_user_audio(request):
         session_id = request.headers.get("sessionId")
         handle_upload_file(audio_file=audio_file)
         file_path = os.path.join(os.getcwd(), "chat_audio", f"{audio_file.name}")
-        audio_output = get_response_audio(file_path=file_path, session_id=session_id)
+        data = get_response_data(file_path=file_path, session_id=session_id)
         remove_upload_file(file_path)
-        return StreamingHttpResponse(
-            stream_audio(audio_output=audio_output),
-            content_type="audio/mpeg",
-        )
+        return JsonResponse({"content": data}, status=200)
     else:
         return JsonResponse({"details": "Method not allowed"}, status=405)
 
