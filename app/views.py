@@ -239,6 +239,7 @@ def clear_history(request):
     evaluation = get_user_evaluation_score(messages)
     update = {"$set": {"evaluation": evaluation}}
     collection.update_one({"_id": ObjectId(interview_id)}, update=update)
+    collection.insert_one({"conversation": messages}) # store the converstation in db for future validation
     clear_database_history("database.json")
     return JsonResponse({"details": "Interview ended successfully"}, status=200)
 
