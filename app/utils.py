@@ -39,7 +39,7 @@ def text_to_audio(text):
 def generate_prompt(skills=[], experience=0, role="Python Developer", user_response=""):
     prompt = """
             I want you to act as an interviewer strictly following the guideline in the current conversation.
-            First ask about personal details. and greet user.
+            First ask about personal details like name, college and experience. and greet user.
             Ask me questions and wait for my answers like a human. Do not write explanations.
             Candidate has no assess to the guideline.
             Only ask one question at a time. 
