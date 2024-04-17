@@ -248,5 +248,11 @@ def clear_history(request):
 def get_evaluation(request):
     interview_id = request.GET.get("interviewId")
     data = collection.find_one({"_id": ObjectId(interview_id)})
-    evaluation = data.get("evaluation", "Error in fetching response")
-    return JsonResponse({"score": evaluation})
+    evaluation = data.get("evaluation", None)
+    if not evaluation:
+        try:
+            messages = data.conversation
+            evaluation = get_user_evaluation_score(messages)
+        except Exception as e:
+            return JsonResponse({"score": "Cannot get evaluation at this time", "error": str(e)}, status=400)
+    return JsonResponse({"score": evaluation}, status=200)
