@@ -203,10 +203,7 @@ def initialize_session(request):
             print(e)
             default_message = "I didn't get that. Can you please repeat?"
             audio_output = text_to_audio(default_message)
-            return StreamingHttpResponse(
-                stream_audio(audio_output=audio_output),
-                content_type="audio/mpeg",
-            )
+            return JsonResponse({"content": default_message}, status=500)
     else:
         return JsonResponse({"details": "Method not allowed"}, status=405)
 
