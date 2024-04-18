@@ -27,6 +27,7 @@ from .utils import (
     initialize_chat,
     load_messages,
     remove_upload_file,
+    send_interview_status_email,
     stream_audio,
     text_to_audio,
     update_question_history,
@@ -230,17 +231,20 @@ def process_user_audio(request):
 
 @csrf_exempt
 def clear_history(request):
-    if request.method == 'GET':
+    if request.method == "GET":
         interview_id = request.GET.get("interviewId")
         messages = load_messages()
         evaluation = get_user_evaluation_score(messages)
         update = {"$set": {"evaluation": evaluation}}
         collection.update_one({"_id": ObjectId(interview_id)}, update=update)
-        collection.insert_one({"conversation": messages}) # store the converstation in db for future validation
+        collection.insert_one(
+            {"conversation": messages}
+        )  # store the converstation in db for future validation
         clear_database_history("database.json")
         return JsonResponse({"details": "Interview ended successfully"}, status=200)
     else:
-        return JsonResponse({'detail': 'Method not allowed'}, status=301)
+        return JsonResponse({"detail": "Method not allowed"}, status=301)
+
 
 @csrf_exempt
 def get_evaluation(request, id):
@@ -253,5 +257,24 @@ def get_evaluation(request, id):
             evaluation = get_user_evaluation_score(messages)
             return JsonResponse({"score": evaluation}, status=200)
         except Exception as e:
+            return JsonResponse(
+                {
+                    "score": "Cannot get evaluation at this time. Try after some time",
+                    "error": str(e),
+                },
+                status=200,
+            )
             return JsonResponse({"score": "Cannot get evaluation at this time. Interview is in progress. Try after some time", "error": str(e)}, status=200)
-    return JsonResponse({"score": evaluation}, status=200)
+
+
+@csrf_exempt
+def send_interview_status_email_to_user(request):
+    if request.method == "POST":
+        json_data = json.loads(request.body)
+        
+        send_interview_status_email({
+            "subject": json_data.get("subject"),
+            "user": json_data.get("user"),
+            "company": json_data.get("company"),
+            "candidate_name": json_data.get("candidateName")})
+        return JsonResponse({"detail": "Email sent successfully"}, status=200)

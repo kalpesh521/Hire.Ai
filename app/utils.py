@@ -3,9 +3,10 @@ import os
 
 import openai
 import requests
+from django.conf import settings
+from django.core.mail import send_mail
 from django.http import HttpResponseBadRequest
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
-
 from .constants import (
     DATABASE_URL,
     ELEVENLABS_API_KEY,
@@ -106,13 +107,20 @@ def load_messages(skills=[], experience=0, role="Python Developer", topic=""):
         messages.append(
             {
                 "role": "system",
-                "content": f'You are interviewing the user for a {role} position. Ask short technical questions like definitions, concepts, tricky questions that are relevant to a candidate with experience level of {experience} years. The candidate has mentioned skills like {skills}. As per the job description, you can ask questions on topics like {topic}. Each response should contain just one question. Only use english language for communication.',
+                "content": f"You are interviewing the user for a {role} position. Ask short technical questions like definitions, concepts, tricky questions that are relevant to a candidate with experience level of {experience} years. The candidate has mentioned skills like {skills}. As per the job description, you can ask questions on topics like {topic}. Each response should contain just one question. Only use english language for communication.",
             }
         )
     return messages
 
 
-def save_messages(user_message, gpt_response, skills=[], experience=0, role="Python Developer", topic=""):
+def save_messages(
+    user_message,
+    gpt_response,
+    skills=[],
+    experience=0,
+    role="Python Developer",
+    topic="",
+):
     file = "database.json"
     messages = load_messages(skills, experience, role, topic)
     messages.append({"role": "user", "content": user_message})
@@ -175,7 +183,14 @@ def get_or_create_history(session_id):
 def initialize_chat(skills, experience, role, topic):
     prompt = generate_prompt(skills, experience, role, topic)
     openai_response = get_openai_response(prompt)
-    save_messages(user_message=prompt, gpt_response=openai_response, skills=skills, experience=experience, role=role, topic=topic)
+    save_messages(
+        user_message=prompt,
+        gpt_response=openai_response,
+        skills=skills,
+        experience=experience,
+        role=role,
+        topic=topic,
+    )
     return openai_response
 
 
@@ -209,3 +224,13 @@ def get_user_evaluation_score(message_history):
 def clear_database_history(file_name):
     with open("database.json", "w") as buffer:
         buffer.write("")
+
+
+def send_interview_status_email(data):
+    subject = f"Interview for {data.get('company')}"
+    message = f"Hi {data.get('candidate_name')}. you have incoming interview"
+    email_from = settings.EMAIL_HOST_USER
+    recipient_list = [
+        data.get("user"),
+    ]
+    send_mail(subject, message, email_from, recipient_list)
