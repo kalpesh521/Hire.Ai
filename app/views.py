@@ -253,5 +253,5 @@ def get_evaluation(request, id):
             evaluation = get_user_evaluation_score(messages)
             return JsonResponse({"score": evaluation}, status=200)
         except Exception as e:
-            return JsonResponse({"score": "Cannot get evaluation at this time. Try after some time", "error": str(e)}, status=200)
+            return JsonResponse({"score": "Cannot get evaluation at this time. Interview is in progress. Try after some time", "error": str(e)}, status=200)
     return JsonResponse({"score": evaluation}, status=200)
