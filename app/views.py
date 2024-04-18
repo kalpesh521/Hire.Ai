@@ -30,7 +30,6 @@ from .utils import (
     stream_audio,
     text_to_audio,
     update_question_history,
-    update_question_history,
 )
 
 openai.api_key = OPENAI_API_KEY
@@ -231,25 +230,28 @@ def process_user_audio(request):
 
 @csrf_exempt
 def clear_history(request):
-    interview_id = request.GET.get("interviewId")
-    messages = load_messages()
-    evaluation = get_user_evaluation_score(messages)
-    update = {"$set": {"evaluation": evaluation}}
-    collection.update_one({"_id": ObjectId(interview_id)}, update=update)
-    collection.insert_one({"conversation": messages}) # store the converstation in db for future validation
-    clear_database_history("database.json")
-    return JsonResponse({"details": "Interview ended successfully"}, status=200)
-
+    if request.method == 'GET':
+        interview_id = request.GET.get("interviewId")
+        messages = load_messages()
+        evaluation = get_user_evaluation_score(messages)
+        update = {"$set": {"evaluation": evaluation}}
+        collection.update_one({"_id": ObjectId(interview_id)}, update=update)
+        collection.insert_one({"conversation": messages}) # store the converstation in db for future validation
+        clear_database_history("database.json")
+        return JsonResponse({"details": "Interview ended successfully"}, status=200)
+    else:
+        return JsonResponse({'detail': 'Method not allowed'}, status=301)
 
 @csrf_exempt
-def get_evaluation(request):
-    interview_id = request.GET.get("interviewId")
+def get_evaluation(request, id):
+    interview_id = id
     data = collection.find_one({"_id": ObjectId(interview_id)})
-    evaluation = data.get("evaluation", None)
-    if not evaluation:
+    evaluation = data.get("evaluation", None) if data else None
+    if evaluation is None:
         try:
             messages = data.conversation
             evaluation = get_user_evaluation_score(messages)
+            return JsonResponse({"score": evaluation}, status=200)
         except Exception as e:
             return JsonResponse({"score": "Cannot get evaluation at this time. Interview is in progress. Try after some time", "error": str(e)}, status=200)
     return JsonResponse({"score": evaluation}, status=200)
