@@ -25,5 +25,5 @@ urlpatterns = [
     path("initialize_session/", initialize_session, name="initialize_session"),
     path("post_audio/", process_user_audio, name="post_audio"),
     path("end/", clear_history, name="end"),
-    path("get_evaluation/", get_evaluation, name="get_evaluation")
+    path("evaluate/<str:id>", get_evaluation, name="evaluate")
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
