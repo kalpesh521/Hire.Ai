@@ -13,7 +13,8 @@ from openai import OpenAI
 from .constants import OPENAI_API_KEY
 from .database import collection
 from .models import AudioFile, UserDetail
-from .utils import (
+from .utils.email_utils import send_email
+from .utils.utils import (
     audio_to_text,
     clear_database_history,
     generate_prompt,
@@ -268,13 +269,28 @@ def get_evaluation(request, id):
 
 
 @csrf_exempt
-def send_interview_status_email_to_user(request):
+def send_email_to_candidate(request):
     if request.method == "POST":
-        json_data = json.loads(request.body)
+        data = json.loads(request.body)
+        if "mail_type" not in data:
+            return JsonResponse({'detail': "Mail type is required"}, status=400)
+        if "user" not in data:
+            return JsonResponse({'detail': "User details are required"}, status=400)
+        if "hr" not in data:
+            return JsonResponse({'detail': "Hr details are required"}, status=400)
+        if "interview" not in data:
+            return JsonResponse({'detail': "Interview details are required"}, status=400)
         
-        send_interview_status_email({
-            "subject": json_data.get("subject"),
-            "user": json_data.get("user"),
-            "company": json_data.get("company"),
-            "candidate_name": json_data.get("candidateName")})
-        return JsonResponse({"detail": "Email sent successfully"}, status=200)
+        if data["mail_type"] not in ["select_candidate", "reject_candidate", "schedule_interview", "end_interview"]:
+            return JsonResponse({'detail': "Invalid mail type"}, status=400)
+        
+        status, message = send_email(
+            send_from=data['hr']['email'],
+            send_to=data['user']['email'],
+            data=data,
+            template_name=data['mail_type']
+        )
+        if status:
+            return JsonResponse({'detail': "Email sent successfully"}, status=200)
+
+        return JsonResponse({'detail': 'Error in sending email', 'error': str(message)}, status=500)

@@ -10,7 +10,7 @@ from .views import (
     process_audio,
     process_audio_and_openai,
     process_user_audio,
-    send_interview_status_email_to_user,
+    send_email_to_candidate,
 )
 
 urlpatterns = [
@@ -27,5 +27,5 @@ urlpatterns = [
     path("post_audio/", process_user_audio, name="post_audio"),
     path("end/", clear_history, name="end"),
     path("evaluate/<str:id>", get_evaluation, name="evaluate"),
-    path("mail/", send_interview_status_email_to_user, name="mail"),
+    path("mail/", send_email_to_candidate, name="mail"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
