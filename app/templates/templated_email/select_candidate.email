@@ -1,0 +1,55 @@
+{% block subject %}Congratulations! You've Been Selected{% endblock %}
+{% block plain %}
+  <html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #d4edda;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .content {
+        padding: 20px;
+      }
+      .content p {
+        margin-bottom: 15px;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 20px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Congratulations! You've Been Selected</h2>
+      </div>
+      <div class="content">
+        <p>Hi {{ user.name }},</p>
+        <p>We are delighted to inform you that you have been selected for the position of <strong>{{ interview.jobTitle }}</strong> at {{ hr.company }}.</p>
+        <p>Further details regarding the offer and onboarding process will be communicated to you shortly.</p>
+        <p>Looking forward to having you on board!</p>
+        <p>Regards,<br>{{ hr.name }}</p>
+      </div>
+      <div class="footer">
+        <p>This is an automated email. Please do not reply.</p>
+      </div>
+    </div>
+  </body>
+  </html>
+{% endblock %}

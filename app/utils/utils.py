@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponseBadRequest
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
-from .constants import (
+from ..constants import (
     DATABASE_URL,
     ELEVENLABS_API_KEY,
     ELEVENLABS_MODEL_ID,
