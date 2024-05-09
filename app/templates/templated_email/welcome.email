@@ -37,10 +37,10 @@
   <body>
     <div class="container">
       <div class="header">
-        <h2>Welcome to our Website, {{ user.name }}!</h2>
+        <h2>Welcome to our Website, {{ candidate.firstName }}!</h2>
       </div>
       <div class="content">
-        <p>Hi {{ user.name }},</p>
+        <p>Hi {{ candidate.firstName }},</p>
         <p>You just signed up for our website, using:</p>
         <ul>
           <li><strong>Username:</strong> {{ user.email }}</li>

@@ -59,12 +59,12 @@
       <h2>Interview Scheduled</h2>
     </div>
     <div class="content">
-      <p>Hi {{ user.name }},</p>
+      <p>Hi {{ candidate.firstName }},</p>
       <p>Your interview for the position of <strong>{{ interview.jobTitle }}</strong> at {{ hr.company }} has been scheduled for:</p>
-      <p>Date: {{ interview.startDate }}</p>
-      <p>Time: {{ interview.startTime }} - {{ interview.endTime }}</p>
+      <p>Date: {{ startDate }}</p>
+      <p>Time: {{ startTime }} - {{ endTime }}</p>
       <p>Please make sure to be on time and prepared. Best of luck!</p>
-      <p>Regards,<br>{{ hr.name }}</p>
+      <p>Regards,<br>{{ hr.firstName }}</p>
       <a href="https://calendar.google.com/" class="button">Add to Calendar</a>
     </div>
     <div class="footer">

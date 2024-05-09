@@ -273,24 +273,29 @@ def send_email_to_candidate(request):
     if request.method == "POST":
         data = json.loads(request.body)
         if "mail_type" not in data:
-            return JsonResponse({'detail': "Mail type is required"}, status=400)
-        if "user" not in data:
-            return JsonResponse({'detail': "User details are required"}, status=400)
+            return JsonResponse({"detail": "Mail type is required"}, status=400)
+        if "candidate" not in data:
+            return JsonResponse({"detail": "User details are required"}, status=400)
         if "hr" not in data:
-            return JsonResponse({'detail': "Hr details are required"}, status=400)
-        if "interview" not in data:
-            return JsonResponse({'detail': "Interview details are required"}, status=400)
-        
-        if data["mail_type"] not in ["select_candidate", "reject_candidate", "schedule_interview", "end_interview"]:
-            return JsonResponse({'detail': "Invalid mail type"}, status=400)
-        
+            return JsonResponse({"detail": "Hr details are required"}, status=400)
+
+        if data["mail_type"] not in [
+            "select_candidate",
+            "reject_candidate",
+            "schedule_interview",
+            "end_interview",
+        ]:
+            return JsonResponse({"detail": "Invalid mail type"}, status=400)
+
         status, message = send_email(
-            send_from=data['hr']['email'],
-            send_to=data['user']['email'],
+            send_from=data["hr"]["email"],
+            send_to=data["candidate"]["email"],
             data=data,
-            template_name=data['mail_type']
+            template_name=data["mail_type"],
         )
         if status:
-            return JsonResponse({'detail': "Email sent successfully"}, status=200)
+            return JsonResponse({"detail": "Email sent successfully"}, status=200)
 
-        return JsonResponse({'detail': 'Error in sending email', 'error': str(message)}, status=500)
+        return JsonResponse(
+            {"detail": "Error in sending email", "error": str(message)}, status=500
+        )

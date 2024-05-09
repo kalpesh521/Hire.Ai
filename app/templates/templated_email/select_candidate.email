@@ -40,11 +40,11 @@
         <h2>Congratulations! You've Been Selected</h2>
       </div>
       <div class="content">
-        <p>Hi {{ user.name }},</p>
-        <p>We are delighted to inform you that you have been selected for the position of <strong>{{ interview.jobTitle }}</strong> at {{ hr.company }}.</p>
+        <p>Hi {{ candidate.firstName }},</p>
+        <p>We are delighted to inform you that you have been selected for the position of <strong>{{ title }}</strong> at {{ hr.company }}.</p>
         <p>Further details regarding the offer and onboarding process will be communicated to you shortly.</p>
         <p>Looking forward to having you on board!</p>
-        <p>Regards,<br>{{ hr.name }}</p>
+        <p>Regards,<br>{{ hr.firstName }}</p>
       </div>
       <div class="footer">
         <p>This is an automated email. Please do not reply.</p>
