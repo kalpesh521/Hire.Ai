@@ -1,4 +1,4 @@
-{% block subject %}Congratulations! You've Been Selected{% endblock %}
+{% block subject %}Congratulations! {{ candidate.firstName }} You've Been Selected for role {{ title }} {% endblock %}
 {% block plain %}
   <html>
   <head>
@@ -8,7 +8,7 @@
         background-color: #f2f2f2;
         margin: 0;
         padding: 0;
-      }
+      
       .container {
         max-width: 600px;
         margin: 20px auto;

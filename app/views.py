@@ -8,6 +8,7 @@ from bson import ObjectId
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from jsonschema import validate
 from openai import OpenAI
 
 from .constants import OPENAI_API_KEY
@@ -265,13 +266,58 @@ def get_evaluation(request, id):
                 },
                 status=200,
             )
-            return JsonResponse({"score": "Cannot get evaluation at this time. Interview is in progress. Try after some time", "error": str(e)}, status=200)
+            return JsonResponse(
+                {
+                    "score": "Cannot get evaluation at this time. Interview is in progress. Try after some time",
+                    "error": str(e),
+                },
+                status=200,
+            )
 
 
 @csrf_exempt
 def send_email_to_candidate(request):
     if request.method == "POST":
+
+        def _validate(data, required_fields=[]):
+            _schema = {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "object",
+                "properties": {
+                    "mail_type": {"type": "string"},
+                    "hr": {
+                        "type": "object",
+                        "properties": {
+                            "email": {"type": "string"},
+                            "firstName": {"type": "string"},
+                            "lastName": {"type": "string"},
+                            "company": {"type": "string"},
+                        },
+                        "required": ["email", "firstName", "lastName", "company"],
+                    },
+                    "candidate": {
+                        "type": "object",
+                        "properties": {
+                            "email": {"type": "string"},
+                            "firstName": {"type": "string"},
+                            "lastName": {"type": "string"},
+                        },
+                        "required": ["email", "firstName", "lastName"],
+                    },
+                    "title": {"type": "string"},
+                },
+                "required": ["mail_type", "hr", "candidate", "title"],
+            }
+            validate(data, schema=_schema)
+
         data = json.loads(request.body)
+        try:
+            _validate(data)
+        except Exception as ex:
+            return JsonResponse(
+                {"data": "Invalid payload", "error": str(ex.args[0])}, status=400
+            )
+        print("goting")
         if "mail_type" not in data:
             return JsonResponse({"detail": "Mail type is required"}, status=400)
         if "candidate" not in data:
@@ -287,6 +333,11 @@ def send_email_to_candidate(request):
         ]:
             return JsonResponse({"detail": "Invalid mail type"}, status=400)
 
+        if not data.get("hr") or not data.get("candidate"):
+            return JsonResponse(
+                {"details": "Invalid details. candidate and HR details required"},
+                status=400,
+            )
         status, message = send_email(
             send_from=data["hr"]["email"],
             send_to=data["candidate"]["email"],
@@ -297,5 +348,5 @@ def send_email_to_candidate(request):
             return JsonResponse({"detail": "Email sent successfully"}, status=200)
 
         return JsonResponse(
-            {"detail": "Error in sending email", "error": str(message)}, status=500
+            {"detail": "Error in sending email", "error": str(message)}, status=400
         )
