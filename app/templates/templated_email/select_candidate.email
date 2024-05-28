@@ -41,7 +41,7 @@
       </div>
       <div class="content">
         <p>Hi {{ candidate.firstName }},</p>
-        <p>We are delighted to inform you that you have been selected for the position of <strong>{{ title }}</strong> at {{ hr.company }}.</p>
+        <p>We are delighted to inform you that you have been selected for the position of <strong>{{ title }}</strong> at our company.</p>
         <p>Further details regarding the offer and onboarding process will be communicated to you shortly.</p>
         <p>Looking forward to having you on board!</p>
         <p>Regards,<br>{{ hr.firstName }}</p>

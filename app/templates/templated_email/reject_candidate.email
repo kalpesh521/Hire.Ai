@@ -41,7 +41,7 @@
       </div>
       <div class="content">
         <p>Hi {{ candidate.name }},</p>
-        <p>We appreciate your interest in the position of <strong>{{ title }}</strong> at {{ hr.company }}.</p>
+        <p>We appreciate your interest in the position of <strong>{{ title }}</strong> at our company.</p>
         <p>After careful consideration, we regret to inform you that you have not been selected for this role.</p>
         <p>We thank you for your time and effort throughout the application and interview process.</p>
         <p>Wishing you all the best in your future endeavors.</p>

@@ -266,13 +266,8 @@ def get_evaluation(request, id):
                 },
                 status=200,
             )
-            return JsonResponse(
-                {
-                    "score": "Cannot get evaluation at this time. Interview is in progress. Try after some time",
-                    "error": str(e),
-                },
-                status=200,
-            )
+    else:
+        return JsonResponse({"score": evaluation}, status=200)
 
 
 @csrf_exempt
@@ -291,9 +286,8 @@ def send_email_to_candidate(request):
                             "email": {"type": "string"},
                             "firstName": {"type": "string"},
                             "lastName": {"type": "string"},
-                            "company": {"type": "string"},
                         },
-                        "required": ["email", "firstName", "lastName", "company"],
+                        "required": ["email", "firstName", "lastName"],
                     },
                     "candidate": {
                         "type": "object",
@@ -312,8 +306,10 @@ def send_email_to_candidate(request):
 
         data = json.loads(request.body)
         try:
+            print(data)
             _validate(data)
         except Exception as ex:
+            print("Invalid payload")
             return JsonResponse(
                 {"data": "Invalid payload", "error": str(ex.args[0])}, status=400
             )
@@ -349,4 +345,22 @@ def send_email_to_candidate(request):
 
         return JsonResponse(
             {"detail": "Error in sending email", "error": str(message)}, status=400
+        )
+    elif request.method == "OPTIONS":
+        # Handle OPTIONS request
+        response = JsonResponse({"message": "This is an OPTIONS request"})
+        # Set CORS headers
+        response["Access-Control-Allow-Origin"] = (
+            "*"  # Update with your allowed origins
+        )
+        response["Access-Control-Allow-Methods"] = (
+            "GET, POST, PUT, DELETE"  # Update with your allowed methods
+        )
+        response["Access-Control-Allow-Headers"] = (
+            "Content-Type"  # Update with your allowed headers
+        )
+        return response
+    else:
+        return JsonResponse(
+            {"status": "error", "message": "Invalid request method"}, status=400
         )
