@@ -60,7 +60,7 @@
     </div>
     <div class="content">
       <p>Hi {{ candidate.firstName }},</p>
-      <p>Your interview for the position of <strong>{{ title }}</strong> at {{ hr.company }} has been scheduled for:</p>
+      <p>Your interview for the position of <strong>{{ title }}</strong> has been scheduled for:</p>
       <p>Date: {{ startDate }}</p>
       <p>Time: Start - {{ startTime }}</p>
       <p> End {{ endTime }} <p>
