@@ -12,8 +12,9 @@ from jsonschema import validate
 from openai import OpenAI
 
 from .constants import OPENAI_API_KEY
-from .database import collection
-from .models import AudioFile, UserDetail
+
+# from .database import collection
+# from .models import AudioFile, UserDetail
 from .utils.email_utils import send_email
 from .utils.utils import (
     audio_to_text,
@@ -66,7 +67,7 @@ def process_audio(request):
             audio_binary_data = base64.b64decode(base64_audio_data)
 
             # Create an AudioFileModel instance and save the audio file
-            audio_model = AudioFile()
+            audio_model = 'Someting'
             audio_model.audio_file.save(
                 "audio_file4.mp3", io.BytesIO(audio_binary_data), save=True
             )
@@ -266,9 +267,16 @@ def get_evaluation(request, id):
                 },
                 status=200,
             )
-    else:
-        return JsonResponse({"score": evaluation}, status=200)
+            return JsonResponse(
+                {
+                    "score": "Cannot get evaluation at this time. Interview is in progress. Try after some time",
+                    "error": str(e),
+                },
+                status=200,
+            )
 
+def check_health(request):
+    print(os.getenv('DATABASE_URL'))
 
 @csrf_exempt
 def send_email_to_candidate(request):
@@ -286,8 +294,9 @@ def send_email_to_candidate(request):
                             "email": {"type": "string"},
                             "firstName": {"type": "string"},
                             "lastName": {"type": "string"},
+                            "company": {"type": "string"},
                         },
-                        "required": ["email", "firstName", "lastName"],
+                        "required": ["email", "firstName", "lastName", "company"],
                     },
                     "candidate": {
                         "type": "object",
@@ -306,14 +315,11 @@ def send_email_to_candidate(request):
 
         data = json.loads(request.body)
         try:
-            print(data)
             _validate(data)
         except Exception as ex:
-            print("Invalid payload")
             return JsonResponse(
                 {"data": "Invalid payload", "error": str(ex.args[0])}, status=400
             )
-        print("goting")
         if "mail_type" not in data:
             return JsonResponse({"detail": "Mail type is required"}, status=400)
         if "candidate" not in data:
@@ -345,22 +351,4 @@ def send_email_to_candidate(request):
 
         return JsonResponse(
             {"detail": "Error in sending email", "error": str(message)}, status=400
-        )
-    elif request.method == "OPTIONS":
-        # Handle OPTIONS request
-        response = JsonResponse({"message": "This is an OPTIONS request"})
-        # Set CORS headers
-        response["Access-Control-Allow-Origin"] = (
-            "*"  # Update with your allowed origins
-        )
-        response["Access-Control-Allow-Methods"] = (
-            "GET, POST, PUT, DELETE"  # Update with your allowed methods
-        )
-        response["Access-Control-Allow-Headers"] = (
-            "Content-Type"  # Update with your allowed headers
-        )
-        return response
-    else:
-        return JsonResponse(
-            {"status": "error", "message": "Invalid request method"}, status=400
         )

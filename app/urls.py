@@ -11,9 +11,11 @@ from .views import (
     process_audio_and_openai,
     process_user_audio,
     send_email_to_candidate,
+    check_health
 )
 
 urlpatterns = [
+    path("health/", check_health, name="check_health"),
     path("process/", process_audio, name="process_audio"),
     path(
         "process_audio_and_openai/<int:audio_file_id>/",
