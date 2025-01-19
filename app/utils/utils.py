@@ -205,7 +205,7 @@ def get_user_evaluation_score(message_history):
 
     Assign scores out of 10 for each category and provide a rationale for the score.
 
-    Based on the above criteria, provide a final evaluation score out of 10 for the user's response.
+    Based on the above criteria, provide a final evaluation score by writing Final Evaluation Score: (score) out of 10 for the user's response.
     Briefly summarize the strengths and weaknesses of the response so Hiring manager can take decision to hire or not.
     """
 
